@@ -7,6 +7,22 @@ This project is uses the data from the PDS project and feeds this data into an s
 ### Test Enviornment
 
 ### Code snippet
+Here is an example of data transformations using pandas dataframes. I wanted
+to transform our data frame by taking the previous closing price to calculate the
+percent change in closing price overall for german equities. 
+
+To do this I: 
+- Create a new column 
+- Use the column to perform simple arithmetic
+- Drop the column since we no longer need it
+- Round our data in our dataframe
+
+```
+df_all['prev_closing_price'] = df_all.sort_values(by=['Date']).groupby(['ISIN'])['closing_price_eur'].shift(1)
+df_all['change_prev_closing_%'] = (df_all['closing_price_eur'] - df_all['prev_closing_price']) / df_all['prev_closing_price'] * 100
+df_all.drop(column=['prev_closing_price'], inplace=True)
+df_all = df_all.round(decimals=2)
+```
 
 ### Pulling data from Xetra Engine
 
