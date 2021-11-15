@@ -1,14 +1,15 @@
 import boto3
 import pandas as pd
-from io import StringIO
+from io import StringIO, BytesIO
+from datetime import datetime, timedelta
+
+grab_by_date = '2021-11-05'
+arg_date_dt = datetime.strptime(grab_by_date, '%Y-%m-%d').date() - timedelta(days=1)
 
 s3 = boto3.resource('s3')
 bucket = s3.Bucket('deutsche-boerse-xetra-pds')
 
-bucket_obj = bucket.objects.filter(Prefix='2021-03-15')
-bucket_obj2 = bucket.objects.filter(Prefix='2021-03-16')
-
-objects = [obj for obj in bucket_obj] + [obj for obj in bucket_obj2]
+objects = [obj for obj in bucket.objects.all() if datetime.strptime(obj.key.split('/')[0], '%Y-%m-%d').date() >= arg_date_dt]
 
 #initialize object
 csv_obj_initializer = bucket.Object(key=objects[0].key).get().get('Body').read().decode('utf-8')
@@ -50,7 +51,15 @@ df_all = df_all.groupby(['ISIN', 'Date'], as_index=False).agg(opening_price_eur=
 #percent change previous closing 
 df_all['prev_closing_price'] = df_all.sort_values(by=['Date']).groupby(['ISIN'])['closing_price_eur'].shift(1)
 df_all['change_prev_closing_%'] = (df_all['closing_price_eur'] - df_all['prev_closing_price']) / df_all['prev_closing_price'] * 100
-df_all.drop(column=['prev_closing_price'], inplace=True) #no longer need prev_closing_price
+df_all.drop(columns=['prev_closing_price'], inplace=True) #no longer need prev_closing_price
 df_all = df_all.round(decimals=2)
+# df_all = df_all[df_all.Date >= arg_date_dt]
 
-print(df_all)
+#write to s3
+buffer = BytesIO()
+save_key = 'daily_report_' + datetime.today().strftime('%Y%m%d_%H%M%S') + '.parquet'
+df_all.to_parquet(buffer, index=False)
+target = s3.Bucket('xetra-data-1234')
+target.put_object(Body=buffer.getvalue(), Key=save_key)
+
+#reading from the target bucket
