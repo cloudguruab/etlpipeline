@@ -18,7 +18,6 @@ def main():
     log_config = config['logging']
     logging.config.dictConfig(log_config) 
     logger = logging.getLogger(__name__)
-    logger.info("this is a test")
     
         
 if __name__ == '__main__':

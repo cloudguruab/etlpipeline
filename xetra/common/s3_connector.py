@@ -1,5 +1,6 @@
 import os
 import boto3
+import logging
 from dot_env import load_dotenv
 
 load_dotenv()
@@ -15,6 +16,7 @@ class S3BucketConnector:
         :param bucket: target bucket
         :param endpoint_url: endpoint for s3 target
         """
+        self._logger = logging.getLogger(__name__)
         self.endpoint_url = endpoint_url
         self.session = boto3.Session(aws_access_key_id=os.environ.get('ACCESS_KEY'),
                                      aws_secret_access_key=os.environ.get('SECRET_KEY'))
