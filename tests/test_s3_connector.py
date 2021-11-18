@@ -1,5 +1,7 @@
 from xetra.common.s3_connector import S3BucketConnector
 from moto import mock_s3 
+from io import StringIO
+import pandas as pd
 # from testfixtures import LogCapture
 # import logging
 import boto3
@@ -72,9 +74,31 @@ class TestConnectorObject:
         assert exp_val1 == df_result[exp_col1][0]
         self.s3_bucket.delete_objects(Delete={ #clean up bucket
             'Objects': [{
-                'Key': file_one
+                'Key': expected_file
             }]
         })
         
     def test_write_data_to_s3(self):
-        pass
+        exp_return = None
+        df_empty = pd.DataFrame()
+        key = 'key.csv'
+        file_format = 'csv'
+        result = self.s3_bucket_conn.write_data_to_s3(df_empty, key, file_format)
+        assert exp_return == result
+        
+    def test_write_data_to_s3_csv(self):
+        return_exp = True
+        df_exp = pd.DataFrame([['A', 'B'], ['C', 'D']], columns=['col1', 'col2'])
+        key_exp = 'test.csv'
+        file_format='csv'
+        result = self.s3_bucket_conn.write_data_to_s3(df_exp, key_exp, file_format)
+        data = self.s3_bucket.Object(key=key_exp).get().get('Body').read().decode('utf-8')
+        out_buffer = StringIO(data)
+        df_result = pd.read_csv(out_buffer)
+        assert return_exp == result
+        assert bool(df_exp.equals(df_result)) == True
+        self.s3_bucket.delete_objects(Delete={ #clean up bucket
+            'Objects': [{
+                'Key': key_exp
+            }]
+        })
