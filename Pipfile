@@ -10,6 +10,10 @@ jupyter = "*"
 boto3 = "*"
 pyarrow = "*"
 pyyaml = "*"
+pytest = "*"
+python-dotenv = "*"
+moto = "*"
+testfixtures = "*"
 
 [dev-packages]
 
