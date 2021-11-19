@@ -2,8 +2,10 @@ import os
 import boto3
 import logging
 import pandas as pd
-from io import StringIO
+from .constants import FileTypes
+from io import StringIO, BytesIO
 from dotenv import load_dotenv
+from .exceptions import WrongFormatException
 
 load_dotenv()
 
@@ -36,5 +38,25 @@ class S3BucketConnector:
         data_frame = pd.read_csv(data, sep=sep)
         return data_frame
     
-    def write_data_to_s3(self):
-        pass
+    def write_data_to_s3(self, data_frame: pd.DataFrame, key: str, file_format: str):
+        if data_frame.empty:
+            self._logger.info("no write access, file doesnt exists")
+            return None
+        
+        if file_format == FileTypes.CSV.value:
+            out_buffer = StringIO()
+            data_frame.to_csv(out_buffer, index=False)
+            return self.__put_object(out_buffer, key)
+        
+        if file_format == FileTypes.PARQUET.value:
+            out_buffer = BytesIO()
+            data_frame.to_parquet(out_buffer, index=False)
+            return self.__put_object(out_buffer, key)
+        
+        self._logger.info('This file format is not supported', file_format)
+        raise WrongFormatException
+    
+    def __put_object(self, out_buffer: StringIO or BytesIO, key: str):
+        self._logger.info(f"Writing file to {self.endpoint_url}, {self._bucket.name}, {key}")
+        self._bucket.put_object(Body=out_buffer.getvalue(), Key=key)
+        return True

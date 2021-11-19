@@ -1,6 +1,7 @@
+import logging
 from typing import NamedTuple
 from xetra.common.s3_connector import S3BucketConnector
-import logging
+
 class XetraSourceConfig(NamedTuple):
     """
     Source configuration for data

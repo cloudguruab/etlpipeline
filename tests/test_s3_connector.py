@@ -1,6 +1,6 @@
 from xetra.common.s3_connector import S3BucketConnector
 from moto import mock_s3 
-from io import StringIO
+from io import StringIO, BytesIO
 import pandas as pd
 # from testfixtures import LogCapture
 # import logging
@@ -102,3 +102,15 @@ class TestConnectorObject:
                 'Key': key_exp
             }]
         })
+        
+    def test_write_df_to_s3_parquet(self):
+        return_exp = True
+        df_exp = pd.DataFrame([['A', 'B'], ['C', 'D']], columns=['col1', 'col2'])
+        key_exp = 'test.parquet'
+        file_format = 'parquet'
+        result = self.s3_bucket_conn.write_data_to_s3(df_exp, key_exp, file_format)
+        data = self.s3_bucket.Object(key=key_exp).get().get('Body').read()
+        out_buffer = BytesIO(data)
+        df_result = pd.read_parquet(out_buffer)
+        assert return_exp == result
+        assert bool(df_exp.equals(df_result)) == True
