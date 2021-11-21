@@ -81,9 +81,34 @@ class XetraETL:
         self.meta_update_lst = None
         
     def extract(self):
-        pass
+        self._logger.info("Extracting xetra data from source file")
+        files = [key for date in self.extract_data_lst \
+            for key in self.s3_bucket_src.list_files_in_prefix(date)]
+        if not files: 
+            data_frame = pd.DataFrame()
+        else: 
+            data_frame = pd.concat([self.s3_bucket_src.read_csv_to_df(file) \
+                for file in files], ignore_index=True)
+        
+        self._logger.info("Extracting xetra data from source complete")
+        return data_frame
     
-    def transform(self):
+    def transform(self, data_frame: pd.DataFrame):
+        if data_frame.empty:
+            self._logger.info("The dataframe is empty")
+            return data_frame
+        
+        self._logger.info("Applying transformations")
+        data_frame = data_fram.loc[:, self.src_args.src_columns]
+        data_frame.dropna(inplace=True)
+        data_frame[self.trg_args.trg_col_op_price] = data_frame \
+            .sort_values(by=[self.src_args.src_col_time]) \
+                .groupby([
+                    self.src_args.src_col_isin,
+                    self.src_args.src_col_date
+                ])[self.src_args.src_col_start_price]\
+                     .transform('first')
+        #calc last
         pass
     
     def load(self):
